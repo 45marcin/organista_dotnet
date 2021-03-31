@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Rendering;
 using LibVLCSharp.Avalonia;
 using LibVLCSharp.Shared;
@@ -21,6 +24,7 @@ namespace Avalonia.NETCoreApp
         private readonly LibVLC _libVlc = new LibVLC();
         
         private VideoView VideoView;
+        private Image image_view;
 
         private List<TagValue> files;
         public MainWindow()
@@ -28,10 +32,15 @@ namespace Avalonia.NETCoreApp
             InitializeComponent();
             
             VideoView = this.Get<VideoView>("VideoView");
+            image_view = this.Get<Image>("image_view");
 #if DEBUG
             this.AttachDevTools();
 #endif
 
+            "convert -background black -fill white -size 1920x1080 -gravity center  label:'Anthony\nmultiline text test' /home/marcin/test.png".Bash();
+            var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
+            image_view.Source = new Bitmap(@"/home/marcin/test.png");
+            
             files = new List<TagValue>();
             ProcessDirectory("/home/marcin/music");
             MediaPlayer = new MediaPlayer(_libVlc);

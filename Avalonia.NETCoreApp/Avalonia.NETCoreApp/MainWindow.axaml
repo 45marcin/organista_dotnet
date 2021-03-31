@@ -8,6 +8,7 @@
         Title="Avalonia.NETCoreApp"
         WindowState="FullScreen">
         <Panel>
-            <vlc:VideoView x:Name="VideoView" />
+            <vlc:VideoView x:Name="VideoView" IsVisible="False" />
+            <Image x:Name="image_view"/>
         </Panel>
 </Window>
