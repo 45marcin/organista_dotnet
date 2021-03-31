@@ -173,17 +173,24 @@ namespace Avalonia.NETCoreApp
                     using var media = new LibVLCSharp.Shared.Media(_libVlc,
                         new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
                     MediaPlayer.Play(media);
+
                 }
                 else
                 {
                     MediaPlayer.Play();
                 }
+                
+                image_view.IsVisible = false;
+                VideoView.IsVisible = true;
 
                 MediaPlayer.Fullscreen = true;
             }
             else
             {
                 MediaPlayer.Pause();
+                
+                image_view.IsVisible = true;
+                VideoView.IsVisible = false;
             }
 
         }
