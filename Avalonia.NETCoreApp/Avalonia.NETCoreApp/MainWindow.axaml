@@ -8,6 +8,6 @@
         Title="Avalonia.NETCoreApp"
         WindowState="FullScreen">
         <Panel>
-            <vlc:VideoView MediaPlayer="{Binding MediaPlayer}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <vlc:VideoView x:Name="VideoView" />
         </Panel>
 </Window>
