@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,6 +14,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Rendering;
+using Avalonia.Threading;
+using HttpServerModule;
 using LibVLCSharp.Avalonia;
 using LibVLCSharp.Shared;
 
@@ -20,13 +23,19 @@ namespace Avalonia.NETCoreApp
 {
     public class MainWindow : Window
     {
-        
+        private status _status = new status();
         private readonly LibVLC _libVlc = new LibVLC();
         
         private VideoView VideoView;
         private Image image_view;
 
         private List<TagValue> files;
+
+        public int stop_point = -1;
+        public  List<text_item> nowShowinText;
+        public List<int> stopPoints;
+
+        private string status = "idle";  //playing_audio, playing video, refreshing files
         public MainWindow()
         {
             InitializeComponent();
@@ -37,16 +46,15 @@ namespace Avalonia.NETCoreApp
             this.AttachDevTools();
 #endif
 
-            "convert -background black -fill white -size 1920x1080 -gravity center  label:'Anthony\nmultiline text test' /home/marcin/test.png".Bash();
-            var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-            image_view.Source = new Bitmap(@"/home/marcin/test.png");
+            
             
             files = new List<TagValue>();
             ProcessDirectory("/home/marcin/music");
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
+            MediaPlayer.EndReached  += MediaPlayerOnEndReached;
             VideoView.MediaPlayer = MediaPlayer;
-            Play();
+            //Play();
             Thread thread1 = new Thread(http_task);
             thread1.Start();
             Console.Out.WriteLine("here");
@@ -59,62 +67,179 @@ namespace Avalonia.NETCoreApp
 
 
             ////////////////////////////
+            ///
+            ///
+
+
+
+            HttpServerModule.HttpServer  server = new HttpServer();
+            server.newRequest += ServerOnnewRequest;
+
+            UdpServer udpServer = new UdpServer();
 
         }
+        private void MediaPlayerOnEndReached(object? sender, EventArgs e)
+        {
+            setImageBlank();
+        }
+        private async void ServerOnnewRequest(object? sender, EventArgs e)
+        {
+                HttpRequestsArgs args = (HttpRequestsArgs) e;
+            try
+            {
+                string body = null;
+                if (args.request.HasEntityBody)
+                {
+                    byte[] body_bytes = new byte[args.request.ContentLength64];
+                    args.request.InputStream.Read(body_bytes, 0, body_bytes.Length);
+                    body = System.Text.Encoding.UTF8.GetString(body_bytes);
+                }
+
+                switch (args.request.HttpMethod)
+                {
+                    case "GET":
+                        if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0 && args.request.QueryString.GetValues("audio")[0].Equals("get_files"))
+                        {
+                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(files), 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("device") != null && args.request.QueryString.GetValues("device").Length > 0  && args.request.QueryString.GetValues("device")[0].Equals("status"))
+                        {
+                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_status), 200);
+                        }
+                        else
+                        {
+                            HttpServer.SendRespone(args.response, "unrecognized query string", 404);
+                        }
+                        break;
+                    case "POST":
+                        if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("play"))
+                        {
+                            if (args.request.QueryString.GetValues("file") != null)
+                            {
+                                PlayAudio(args.request.QueryString.GetValues("file")[0]);
+                            }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("stop"))
+                        {
+                            Stop();
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("stop_time"))
+                        {
+                            if (stopPoints != null)
+                            {
+                                int current = Convert.ToInt32(MediaPlayer.Position*MediaPlayer.Media.Duration);
+                                foreach(var time in stopPoints)
+                                {
+                                    if (time > current)
+                                    {
+                                        stop_point = time;
+                                        HttpServer.SendRespone(args.response, "set time stop point successfull", 200);
+                                        _status.stopTime = true;
+                                        return;
+                                    }
+                                }
+                            }
+                            HttpServer.SendRespone(args.response, "set time stop point impossible", 501);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("stop_time_cancek"))
+                        {
+                            try
+                            {
+                                stop_point = -1;
+                                _status.stopTime = false;
+                            }
+                            catch (Exception exception)
+                            {
+                                HttpServer.SendRespone(args.response, "clearing time stop unsuccessfull", 200);
+                                return;
+                            }
+
+                            HttpServer.SendRespone(args.response, "clearing time stop point successfull", 200);
+                            return;
+                        }
+                        else
+                        {
+                            HttpServer.SendRespone(args.response, "unrecognized query string", 404);
+                        }
+                        break;
+                    case "PUT":
+                        HttpServer.SendRespone(args.response, "PUT", 200);
+                        break;
+                }
+            }
+            catch
+            {
+                HttpServer.SendRespone(args.response, "INTERNAL ERROR", 500);
+            }
+
+        }
+
         
         
-        
-        
-        
+
+
+
+
         private void MediaPlayerOnPositionChanged(object? sender, MediaPlayerPositionChangedEventArgs e)
         {
-           Console.Out.WriteLine(e.Position*MediaPlayer.Media.Duration);
+            try
+            {
+                float currentTime = e.Position*MediaPlayer.Media.Duration;
+                if (nowShowinText != null && e.Position*MediaPlayer.Media.Duration/1000 > Convert.ToSingle(nowShowinText[0].time))
+                {
+                    setImageText(nowShowinText[0].text);
+                    nowShowinText.RemoveAt(0);
+                    if (nowShowinText.Count == 0)
+                    {
+                        nowShowinText = null;
+                    }
+                }
+                if (stop_point > -1 && currentTime > stop_point)
+                {
+                    Stop();
+                }
+            }
+            catch
+            {
+                
+            }
         }
 
         async void http_task()
         {
             
-            if (!HttpListener.IsSupported)
-            {
-                Console.WriteLine ("Windows XP SP2 or Server 2003 is required to use the HttpListener class.");
-                return;
-            }
-            // URI prefixes are required,
-            // for example "http://contoso.com:8080/index/".
             
-            
-            
-            
-            
-            // Create a listener.
-            HttpListener listener = new HttpListener();
-            // Add the prefixes.
-            listener.Prefixes.Add("http://localhost:8000/start/");
-            
-            listener.Start();
-            while (true)
-            {
-                Console.WriteLine("Listening...");
-                // Note: The GetContext method blocks while waiting for a request.
-                HttpListenerContext context = listener.GetContext();
-                HttpListenerRequest request = context.Request;
-                // Obtain a response object.
-                HttpListenerResponse response = context.Response;
-                // Construct a response.
-                string responseString = "<HTML><BODY> Hello world!</BODY></HTML>";
-                byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-                // Get a response stream and write the response to it.
-                response.ContentLength64 = buffer.Length;
-                System.IO.Stream output = response.OutputStream;
-                output.Write(buffer,0,buffer.Length);
-                // You must close the output stream.
-                output.Close();
+        }
+        async void setImageText(string text)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+            { 
                 
-                Avalonia.Threading.Dispatcher.UIThread.Post(() => { Play();});
-            }
-            listener.Stop();
+                ("convert -background black -fill white -size 1920x1080 -gravity center  label:'" + text + "' /home/marcin/test.png").Bash();
+                var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
+                image_view.Source = new Bitmap(@"/home/marcin/test.png");
+                
+                image_view.IsVisible = true;
+                VideoView.IsVisible = false;
+                MediaPlayer.Fullscreen = true; 
+            });
         }
 
+        async void setImageBlank()
+        {
+            _status.imagePlaying = false;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                image_view.Source = null;
+                
+                image_view.IsVisible = true;
+                VideoView.IsVisible = false;
+                MediaPlayer.Fullscreen = true; 
+            });
+        }
+        
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
@@ -163,36 +288,112 @@ namespace Avalonia.NETCoreApp
         }
         
         public MediaPlayer MediaPlayer { get; }
-
-        public void Play()
+        
+        public void PlayAudio(string file_path)
         {
-            if (!MediaPlayer.IsPlaying)
+            
+            setImageBlank();
+            foreach(var file in  files)
             {
-                if (MediaPlayer.Media == null)
+                if (file.path.Equals(file_path))
                 {
-                    using var media = new LibVLCSharp.Shared.Media(_libVlc,
-                        new Uri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"));
-                    MediaPlayer.Play(media);
+                    nowShowinText = new List<text_item>();
+                    if (file.TEXT != null && file.TEXT.Length > 0)
+                    {
+                        foreach(var y in file.TEXT)
+                        {
+                            nowShowinText.Add(y);
+                        }
+                        nowShowinText.Sort(delegate(text_item x, text_item y)
+                        {
+                            return Convert.ToSingle(x.time).CompareTo(Convert.ToSingle(y.time));
+                        });
+                    }
 
-                }
-                else
-                {
-                    MediaPlayer.Play();
-                }
-                
-                image_view.IsVisible = false;
-                VideoView.IsVisible = true;
+                   
 
-                MediaPlayer.Fullscreen = true;
+                    if (file.STOPS != null && file.STOPS.Length > 0)
+                    {
+                        stopPoints = new List<int>();
+                        foreach(var y in file.STOPS)
+                        {
+                            stopPoints.Add(Convert.ToInt32(y*1000));
+                        }
+                        stopPoints.Sort();
+                    }
+                }
+
             }
-            else
+            
+            if (MediaPlayer.IsPlaying)
             {
-                MediaPlayer.Pause();
-                
+                MediaPlayer.Stop();
+                nowShowinText = null;
+            }
+            
+            using var media = new LibVLCSharp.Shared.Media(_libVlc, new Uri(file_path));
+            MediaPlayer.Play(media);
+            
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+            { 
                 image_view.IsVisible = true;
                 VideoView.IsVisible = false;
-            }
+                MediaPlayer.Fullscreen = true; 
+            });
 
+            _status.nowPlaying = file_path;
+            _status.audioPlaying = true;
+            _status.videoPlaying = false;
+            _status.imagePlaying = false;
+        }
+
+        public async void Stop()
+        {
+            if (MediaPlayer.IsPlaying)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+                { 
+                    MediaPlayer.Stop();
+                });
+            }
+            stopPoints = null;
+            stop_point = -1;
+            
+            _status.stopTime = false;
+            nowShowinText = null;
+            setImageBlank();
+
+            _status.nowPlaying = null;
+            _status.audioPlaying = false;
+            _status.videoPlaying = false;
+            _status.imagePlaying = false;
+        }
+        
+        
+        public void PlayVideo(string path)
+        {
+            
+            if (MediaPlayer.IsPlaying)
+            {
+               MediaPlayer.Stop();
+            }
+            
+            var media = new LibVLCSharp.Shared.Media(_libVlc, new Uri(path));
+            MediaPlayer.Play(media);
+
+            
+        
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => 
+            { 
+                image_view.IsVisible = false;
+                VideoView.IsVisible = true;
+                MediaPlayer.Fullscreen = true; 
+            });
+            
+            _status.nowPlaying = path;
+            _status.audioPlaying = false;
+            _status.videoPlaying = true;
+            _status.imagePlaying = false;
         }
     }
 }
