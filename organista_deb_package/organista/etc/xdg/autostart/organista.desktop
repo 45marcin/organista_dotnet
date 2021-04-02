@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Encoding=UTF-8
+Exec=/usr/share/organista/organista.sh
+Name=Organista software
+# KDE bug 190522: KDE does not autostart items with NoDisplay=true...
+# NoDisplay=true
+#X-KDE-autostart-phase=1
