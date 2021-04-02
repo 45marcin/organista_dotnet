@@ -52,7 +52,7 @@ namespace Avalonia.NETCoreApp
             
             
             files = new List<TagValue>();
-            //ProcessDirectory("/home/marcin/music");
+            ProcessDirectory("/home/marcin/music");
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
@@ -293,7 +293,7 @@ namespace Avalonia.NETCoreApp
         public  void ProcessFile(string path)
         {
             Console.WriteLine("Processed file '{0}'.", path);
-            if (path.Contains(".wav"))
+            if (path.Contains(".wav") || path.Contains(".WAV") || path.Contains(".mp3") || path.Contains(".MP3") || path.Contains(".flac") || path.Contains(".FLAC"))
             {
                 var tfile = TagLib.File.Create(@path);
                 Console.Out.WriteLine(tfile.Tag.Title);
