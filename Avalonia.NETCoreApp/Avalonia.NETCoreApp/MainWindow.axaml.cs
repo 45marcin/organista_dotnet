@@ -51,6 +51,7 @@ namespace Avalonia.NETCoreApp
             files = new List<TagValue>();
             ProcessDirectory("/home/marcin/music");
             MediaPlayer = new MediaPlayer(_libVlc);
+            MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
             MediaPlayer.EndReached  += MediaPlayerOnEndReached;
             VideoView.MediaPlayer = MediaPlayer;
@@ -394,6 +395,24 @@ namespace Avalonia.NETCoreApp
             _status.audioPlaying = false;
             _status.videoPlaying = true;
             _status.imagePlaying = false;
+        }
+
+        public void SetBalance(int balance)
+        {
+            if (balance > 0)
+            {
+                ("amixer sset Headphone " + (100 - balance).ToString() + "%,100%").Bash();
+                ("amixer sset Front " + (100 - balance).ToString() + "%,100%").Bash();
+            }
+            else{
+                ("amixer sset Headphone 100%," + (100+balance).ToString() + "%").Bash();
+                ("amixer sset Front 100%," + (100+balance).ToString() + "%").Bash();
+            }
+        }
+        
+        public void SetVolume(int volume)
+        {
+            ("amixer sset Master " + volume.ToString() + "%").Bash();
         }
     }
 }
