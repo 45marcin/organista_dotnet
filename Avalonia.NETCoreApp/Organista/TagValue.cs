@@ -8,5 +8,6 @@ namespace Organista
         public string title { get; set; }
         public string album { get; set; }
         public string path { get; set; }
+        public long length { get; set; }
     }
 }
