@@ -1,4 +1,4 @@
-namespace Avalonia.NETCoreApp
+namespace Organista
 {
     public class status
     {

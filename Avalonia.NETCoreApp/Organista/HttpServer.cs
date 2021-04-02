@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Net;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace HttpServerModule
+namespace Organista
 {
     public interface HttpRequest
     {

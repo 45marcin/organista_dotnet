@@ -4,8 +4,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vlc="clr-namespace:LibVLCSharp.Avalonia;assembly=LibVLCSharp.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Avalonia.NETCoreApp.MainWindow"
-        Title="Avalonia.NETCoreApp"
+        x:Class="Organista.MainWindow"
+        Title="Organista"
         Background="Black"
         WindowState="FullScreen">
         <Panel>

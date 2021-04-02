@@ -1,25 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Avalonia.Rendering;
-using Avalonia.Threading;
-using HttpServerModule;
 using LibVLCSharp.Avalonia;
 using LibVLCSharp.Shared;
 
-namespace Avalonia.NETCoreApp
+namespace Organista
 {
     public class MainWindow : Window
     {
@@ -52,7 +44,7 @@ namespace Avalonia.NETCoreApp
             
             
             files = new List<TagValue>();
-            ProcessDirectory("/home/marcin/music");
+            ProcessDirectory("/usr/share/organista/music");
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
@@ -76,13 +68,13 @@ namespace Avalonia.NETCoreApp
 
 
 
-            HttpServerModule.HttpServer  server = new HttpServer();
+            HttpServer  server = new HttpServer();
             server.newRequest += ServerOnnewRequest;
 
             UdpServer udpServer = new UdpServer();
 
         }
-
+        
         void initAudio()
         {
             readVolume();

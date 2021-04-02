@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "1g2DotXbizUbm76T9MKQM4ijAehlTJzwMccHBjkP52S+Gi4uxv52TId3o7vsh37aEgEHGfQAfUjP6/ASvOuivQ==",
+  "dgSpecHash": "crd7x/QYrKvbZxxMTCFlUzI5Sp0n38ZC4d2ajK9eBm5pRmBAugvbfIigmThVVKd0sz5pmbYkddlWObkvDTkJ5w==",
   "success": true,
   "projectFilePath": "/home/marcin/Documents/GitHub/organista_dotnet/Avalonia.NETCoreApp/HttpServerModule/HttpServerModule.csproj",
   "expectedPackageFiles": [],

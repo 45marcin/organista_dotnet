@@ -3,6 +3,10 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <AssemblyName>Organista</AssemblyName>
+        <RootNamespace>Organista</RootNamespace>
+        <Company>RosiekM</Company>
+        <Product>Organista</Product>
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="0.10.0" />

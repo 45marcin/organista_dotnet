@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Avalonia.NETCoreApp
+namespace Organista
 {
     public static class ShellHelper
     {
