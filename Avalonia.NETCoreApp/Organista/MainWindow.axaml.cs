@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using Avalonia;
@@ -22,6 +23,8 @@ namespace Organista
         private Image image_view;
 
         private List<TagValue> files;
+        private List<TagValue> video_files;
+        private List<TagValue> image_files;
 
         public int stop_point = -1;
         public  List<text_item> nowShowinText;
@@ -44,7 +47,7 @@ namespace Organista
             
             
             files = new List<TagValue>();
-            ProcessDirectory("/usr/share/organista/music");
+            //ProcessDirectory("/usr/share/organista/music");
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
@@ -305,7 +308,29 @@ namespace Organista
                 file_info.title = tfile.Tag.Title;
                  file_info.album = tfile.Tag.Album;
                  file_info.path = path;
+                 file_info.length = tfile.Length;
                  files.Add(file_info);
+            }
+            else if (path.ToUpper().Contains(".MP4") || path.ToUpper().Contains(".WMV") || path.ToUpper().Contains(".AVI") || path.ToUpper().Contains(".MKV") || path.ToUpper().Contains(".MOV"))
+            {
+                TagValue file_info = new TagValue();
+
+                file_info.title = path.Split("/").Last();
+                file_info.path = path;
+                file_info.album = "WIDEO";
+                var tfile = TagLib.File.Create(@path);
+                
+                file_info.length = tfile.Length;
+                video_files.Add(file_info);
+            }
+            else if (path.ToUpper().Contains(".JPG") || path.ToUpper().Contains(".JPEG") || path.ToUpper().Contains(".PNG"))
+            {
+                TagValue file_info = new TagValue();
+                file_info.title = path.Split("/").Last();
+                file_info.path = path;
+                file_info.album = "IMAGE";
+                
+                image_files.Add(file_info);
             }
         }
         

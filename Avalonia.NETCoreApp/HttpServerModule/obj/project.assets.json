@@ -1,8 +1,7 @@
 {
   "version": 3,
   "targets": {
-    "net5.0": {},
-    "net5.0/linux-x64": {}
+    "net5.0": {}
   },
   "libraries": {},
   "projectFileDependencyGroups": {
@@ -60,11 +59,6 @@
           }
         },
         "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/5.0.201/RuntimeIdentifierGraph.json"
-      }
-    },
-    "runtimes": {
-      "linux-x64": {
-        "#import": []
       }
     }
   }
