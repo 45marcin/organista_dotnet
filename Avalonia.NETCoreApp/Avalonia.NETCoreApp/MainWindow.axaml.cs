@@ -36,9 +36,12 @@ namespace Avalonia.NETCoreApp
         public List<int> stopPoints;
 
         private string status = "idle";  //playing_audio, playing video, refreshing files
+
         public MainWindow()
         {
             InitializeComponent();
+            
+            initAudio();
             
             VideoView = this.Get<VideoView>("VideoView");
             image_view = this.Get<Image>("image_view");
@@ -49,7 +52,7 @@ namespace Avalonia.NETCoreApp
             
             
             files = new List<TagValue>();
-            ProcessDirectory("/home/marcin/music");
+            //ProcessDirectory("/home/marcin/music");
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
@@ -78,6 +81,15 @@ namespace Avalonia.NETCoreApp
 
             UdpServer udpServer = new UdpServer();
 
+        }
+
+        void initAudio()
+        {
+            readVolume();
+            readBalance();
+            
+            SetBalance(_status.AudioBalance);
+            SetVolume(_status.AudioVolume);
         }
         private void MediaPlayerOnEndReached(object? sender, EventArgs e)
         {
@@ -160,10 +172,27 @@ namespace Avalonia.NETCoreApp
                             HttpServer.SendRespone(args.response, "clearing time stop point successfull", 200);
                             return;
                         }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("set_volume"))
+                        {
+                            if (args.request.QueryString.GetValues("value") != null)
+                            {
+                                SetVolume(Convert.ToInt32(args.request.QueryString.GetValues("value")[0].ToString()));
+                            }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("balance"))
+                        {
+                            if (args.request.QueryString.GetValues("value") != null)
+                            {
+                                SetBalance(Convert.ToInt32(args.request.QueryString.GetValues("value")[0].ToString()));
+                            }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
                         else
                         {
                             HttpServer.SendRespone(args.response, "unrecognized query string", 404);
                         }
+                        
                         break;
                     case "PUT":
                         HttpServer.SendRespone(args.response, "PUT", 200);
@@ -399,20 +428,84 @@ namespace Avalonia.NETCoreApp
 
         public void SetBalance(int balance)
         {
+            if (balance > 100)
+            {
+                balance = 100;
+            }
+            else if (balance < -100)
+            {
+                balance = -100;
+            }
             if (balance > 0)
             {
-                ("amixer sset Headphone " + (100 - balance).ToString() + "%,100%").Bash();
-                ("amixer sset Front " + (100 - balance).ToString() + "%,100%").Bash();
+                ("amixer -c 1 sset Headphone " + (100 - balance).ToString() + "%,100%").Bash();
+                ("amixer -c 1 sset Front " + (100 - balance).ToString() + "%,100%").Bash();
+                ("amixer -c 1 sset Speaker " + (100 - balance).ToString() + "%,100%").Bash();
+                ("amixer -c 1 sset PCM " + (100 - balance).ToString() + "%,100%").Bash();
             }
             else{
-                ("amixer sset Headphone 100%," + (100+balance).ToString() + "%").Bash();
-                ("amixer sset Front 100%," + (100+balance).ToString() + "%").Bash();
+                ("amixer -c 1 sset Headphone 100%," + (100+balance).ToString() + "%").Bash();
+                ("amixer -c 1 sset Front 100%," + (100+balance).ToString() + "%").Bash();
+                ("amixer -c 1 sset Speaker 100%," + (100+balance).ToString() + "%").Bash();
+                ("amixer -c 1 sset PCM 100%," + (100+balance).ToString() + "%").Bash();
             }
+            
+            saveBalance(balance);
         }
         
         public void SetVolume(int volume)
         {
-            ("amixer sset Master " + volume.ToString() + "%").Bash();
+            if (volume > 100)
+            {
+                volume = 100;
+            }
+            else if (volume < 0)
+            {
+                volume = 0;
+            }
+            ("amixer -c 1 sset Master " + volume.ToString() + "%").Bash();
+            saveVolume(volume);
         }
+        
+        
+        public void saveVolume(int volume)
+        {
+            File.WriteAllText("volume", volume.ToString());
+        }
+        
+        public void readVolume()
+        {
+            if (File.Exists("volume"))
+            {
+                _status.AudioVolume =  Convert.ToInt32(File.ReadAllText("volume"));
+            }
+            else
+            {
+                saveVolume(100);
+                _status.AudioVolume = 100;
+            }
+        }
+        
+        
+        
+        public void saveBalance(int balance)
+        {
+            File.WriteAllText("balance", balance.ToString());
+        }
+        
+        public void readBalance()
+        {
+            if (File.Exists("balance"))
+            {
+                _status.AudioBalance = Convert.ToInt32(File.ReadAllText("balance"));
+            }
+            else
+            {
+                saveBalance(0);
+                _status.AudioBalance = 0;
+            }
+           
+        }
+        
     }
 }
