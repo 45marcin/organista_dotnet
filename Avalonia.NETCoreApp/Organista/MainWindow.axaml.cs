@@ -91,12 +91,30 @@ namespace Organista
 
         private void DeviceWatcherOnDirectoryAppeared(object? sender, EventArgs e)
         {
-            Console.WriteLine("Appeared: "  + ((DirecoryEventArgs)e).path);
+            try
+            {
+                string path = ((DirecoryEventArgs) e).path;
+                foreach (var x in usbStorageCollections)
+                {
+                    if (x.path.Equals(path))
+                    {
+                        usbStorageCollections.Remove(x);
+                    }
+                }
+            }
+            catch
+            {
+                
+            }
         }
 
         private void DeviceWatcherOnDirectorydisappeared(object? sender, EventArgs e)
         {
-            Console.WriteLine("DisAppeared: "  + ((DirecoryEventArgs)e).path);
+            MediaFilesCollection mediaFilesCollection = new MediaFilesCollection();
+            usbStorageCollections.Add(mediaFilesCollection);
+            mediaFilesCollection.path = ((DirecoryEventArgs) e).path;
+            mediaFilesCollection.name = ((DirecoryEventArgs) e).path.Split("/").Last();
+            ProcessDirectory("/home/marcin/organista_audio/", _mediaFilesCollection);
         }
 
 
