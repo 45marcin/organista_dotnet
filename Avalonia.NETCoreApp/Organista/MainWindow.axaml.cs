@@ -30,12 +30,22 @@ namespace Organista
         public  List<text_item> nowShowinText;
         public List<int> stopPoints;
 
+        public List<MediaFilesCollection> usbStorageCollections;
+        private MediaFilesCollection _mediaFilesCollection;
+        private bool scanningUSB = false;
+            
+
         private string status = "idle";  //playing_audio, playing video, refreshing files
 
         public MainWindow()
         {
             InitializeComponent();
-            
+            _mediaFilesCollection = new MediaFilesCollection();
+            usbStorageCollections = new List<MediaFilesCollection>();
+            DirectoryWatcher deviceWatcher = new DirectoryWatcher("/media/" + "whoami".Bash().Replace("\n", ""));
+            deviceWatcher.Directorydisappeared += DeviceWatcherOnDirectorydisappeared;
+            deviceWatcher.DirectoryAppeared += DeviceWatcherOnDirectoryAppeared;
+            deviceWatcher.start();
             initAudio();
             
             VideoView = this.Get<VideoView>("VideoView");
@@ -48,6 +58,7 @@ namespace Organista
             
             files = new List<TagValue>();
             //ProcessDirectory("/usr/share/organista/music");
+            ProcessDirectory("/home/marcin/organista_audio/", _mediaFilesCollection);
             MediaPlayer = new MediaPlayer(_libVlc);
             MediaPlayer.Volume = 100;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
@@ -77,7 +88,18 @@ namespace Organista
             UdpServer udpServer = new UdpServer();
 
         }
-        
+
+        private void DeviceWatcherOnDirectoryAppeared(object? sender, EventArgs e)
+        {
+            Console.WriteLine("Appeared: "  + ((DirecoryEventArgs)e).path);
+        }
+
+        private void DeviceWatcherOnDirectorydisappeared(object? sender, EventArgs e)
+        {
+            Console.WriteLine("DisAppeared: "  + ((DirecoryEventArgs)e).path);
+        }
+
+
         void initAudio()
         {
             readVolume();
@@ -90,6 +112,60 @@ namespace Organista
         {
             setImageBlank();
         }
+
+        async void DeviceWatcher()
+        {
+            try
+            {
+                scanningUSB = true;
+                
+
+                string[] devices = EnumerateExernalStorage("/media/" + "whoami".Bash().Replace("\n", ""));
+
+                List<MediaFilesCollection> tmpUSB = new List<MediaFilesCollection>();
+                
+                foreach (var usb in  devices)
+                {
+                    var coll = isUSBContained(usb, usbStorageCollections);
+                    if (coll != null)
+                    {
+                        tmpUSB.Add(coll);
+                    }
+                    else
+                    {
+                        MediaFilesCollection mediaFilesCollection = new MediaFilesCollection();
+                        mediaFilesCollection.path = usb;
+                        mediaFilesCollection.name = usb.Split("/").Last();
+                        ProcessDirectory(usb, mediaFilesCollection);
+                        tmpUSB.Add(mediaFilesCollection);
+                        
+                        
+                        //parse directory
+                    }
+                    
+                }
+
+                scanningUSB = false;
+            }
+            catch
+            {
+                scanningUSB = false;
+            }
+        }
+
+        MediaFilesCollection  isUSBContained(string usb, List<MediaFilesCollection> collections)
+        {
+            foreach (var y in collections)
+            {
+                if (usb.Contains(y.path))
+                {
+                    return y;
+                }
+            }
+
+            return null;
+        }
+        
         private async void ServerOnnewRequest(object? sender, EventArgs e)
         {
                 HttpRequestsArgs args = (HttpRequestsArgs) e;
@@ -270,22 +346,31 @@ namespace Organista
             AvaloniaXamlLoader.Load(this);
         }
         
-        public  void ProcessDirectory(string targetDirectory)
+        public string[] EnumerateExernalStorage(string path)
+        {
+            return Directory.GetDirectories(path);
+        }
+        
+       
+        
+        public  void ProcessDirectory(string targetDirectory,  MediaFilesCollection collection)
         {
             Console.Out.WriteLine(targetDirectory);
             // Process the list of files found in the directory.
             string [] fileEntries = Directory.GetFiles(targetDirectory);
             foreach(string fileName in fileEntries){
-                ProcessFile(fileName);}
+                ProcessFile(fileName, collection);
+                
+            }
 
             // Recurse into subdirectories of this directory.
             string [] subdirectoryEntries = Directory.GetDirectories(targetDirectory);
             foreach(string subdirectory in subdirectoryEntries)
-                ProcessDirectory(subdirectory);
+                ProcessDirectory(subdirectory, collection);
         }
 
         // Insert logic for processing found files here.
-        public  void ProcessFile(string path)
+        public  void ProcessFile(string path,  MediaFilesCollection collection)
         {
             Console.WriteLine("Processed file '{0}'.", path);
             if (path.Contains(".wav") || path.Contains(".WAV") || path.Contains(".mp3") || path.Contains(".MP3") || path.Contains(".flac") || path.Contains(".FLAC"))
@@ -304,16 +389,17 @@ namespace Organista
                 {
                     file_info = new TagValue();
                 }
-
+/*
                 file_info.title = tfile.Tag.Title;
                  file_info.album = tfile.Tag.Album;
                  file_info.path = path;
                  file_info.length = tfile.Length;
                  files.Add(file_info);
+                 */
             }
             else if (path.ToUpper().Contains(".MP4") || path.ToUpper().Contains(".WMV") || path.ToUpper().Contains(".AVI") || path.ToUpper().Contains(".MKV") || path.ToUpper().Contains(".MOV"))
             {
-                TagValue file_info = new TagValue();
+/*                TagValue file_info = new TagValue();
 
                 file_info.title = path.Split("/").Last();
                 file_info.path = path;
@@ -322,15 +408,19 @@ namespace Organista
                 
                 file_info.length = tfile.Length;
                 video_files.Add(file_info);
+                */
             }
             else if (path.ToUpper().Contains(".JPG") || path.ToUpper().Contains(".JPEG") || path.ToUpper().Contains(".PNG"))
             {
+                
+                /*
                 TagValue file_info = new TagValue();
                 file_info.title = path.Split("/").Last();
                 file_info.path = path;
                 file_info.album = "IMAGE";
                 
                 image_files.Add(file_info);
+                */
             }
         }
         
@@ -338,7 +428,7 @@ namespace Organista
         
         public void PlayAudio(string file_path)
         {
-            
+            /*
             setImageBlank();
             foreach(var file in  files)
             {
@@ -369,9 +459,11 @@ namespace Organista
                         stopPoints.Sort();
                     }
                 }
+                
+                
 
             }
-            
+            */
             if (MediaPlayer.IsPlaying)
             {
                 MediaPlayer.Stop();
