@@ -205,6 +205,14 @@ namespace Organista
                         {
                             HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_mediaFilesCollection.audioFiles), 200);
                         }
+                        if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("video") != null && args.request.QueryString.GetValues("video").Length > 0 && args.request.QueryString.GetValues("video")[0].Equals("get_files"))
+                        {
+                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_mediaFilesCollection.videoFiles), 200);
+                        }
+                        if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("image") != null && args.request.QueryString.GetValues("image").Length > 0 && args.request.QueryString.GetValues("image")[0].Equals("get_files"))
+                        {
+                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_mediaFilesCollection.imageFiles), 200);
+                        }
                         else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("device") != null && args.request.QueryString.GetValues("device").Length > 0  && args.request.QueryString.GetValues("device")[0].Equals("status"))
                         {
                             HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_status), 200);
@@ -221,6 +229,19 @@ namespace Organista
                             {
                                 PlayAudio(args.request.QueryString.GetValues("file")[0]);
                             }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("video") != null && args.request.QueryString.GetValues("video").Length > 0   && args.request.QueryString.GetValues("video")[0].Equals("play"))
+                        {
+                            if (args.request.QueryString.GetValues("file") != null)
+                            {
+                                PlayVideo(args.request.QueryString.GetValues("file")[0]);
+                            }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("video") != null && args.request.QueryString.GetValues("video").Length > 0   && args.request.QueryString.GetValues("video")[0].Equals("stop"))
+                        {
+                            Stop();
                             HttpServer.SendRespone(args.response, "", 200);
                         }
                         else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("stop"))
