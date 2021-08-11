@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using Avalonia;
@@ -11,6 +12,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using LibVLCSharp.Avalonia;
 using LibVLCSharp.Shared;
+
+//packages needed: vlc, libvlc, imagemagick
 
 namespace Organista
 {
@@ -42,10 +45,10 @@ namespace Organista
             InitializeComponent();
             _mediaFilesCollection = new MediaFilesCollection();
             usbStorageCollections = new List<MediaFilesCollection>();
-            DirectoryWatcher deviceWatcher = new DirectoryWatcher("/media/" + "whoami".Bash().Replace("\n", ""));
-            deviceWatcher.Directorydisappeared += DeviceWatcherOnDirectorydisappeared;
-            deviceWatcher.DirectoryAppeared += DeviceWatcherOnDirectoryAppeared;
-            deviceWatcher.start();
+            //DirectoryWatcher deviceWatcher = new DirectoryWatcher("/media/" + "whoami".Bash().Replace("\n", ""));
+            //deviceWatcher.Directorydisappeared += DeviceWatcherOnDirectorydisappeared;
+            //deviceWatcher.DirectoryAppeared += DeviceWatcherOnDirectoryAppeared;
+            //deviceWatcher.start();
             initAudio();
             
             VideoView = this.Get<VideoView>("VideoView");
@@ -57,28 +60,26 @@ namespace Organista
             
             
             files = new List<TagValue>();
-            //ProcessDirectory("/usr/share/organista/music");
+            ProcessDirectory("/home/marcin/Documents/GitHub/Organista_tagEditor_python", _mediaFilesCollection);
+            /*
+             *
             ProcessDirectory("/home/marcin/organista_audio/", _mediaFilesCollection);
+             * 
+             */
+            
+            //Play();
+            
             MediaPlayer = new MediaPlayer(_libVlc);
-            MediaPlayer.Volume = 100;
+            MediaPlayer.Volume = 25;
             MediaPlayer.PositionChanged += MediaPlayerOnPositionChanged;
             MediaPlayer.EndReached  += MediaPlayerOnEndReached;
             VideoView.MediaPlayer = MediaPlayer;
-            //Play();
-            Thread thread1 = new Thread(http_task);
-            thread1.Start();
-            Console.Out.WriteLine("here");
-            
             
             
             //////////////////
             // Get the output into a string
             string result = "uname -a".Bash();
 
-
-            ////////////////////////////
-            ///
-            ///
 
 
 
@@ -202,7 +203,7 @@ namespace Organista
                     case "GET":
                         if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0 && args.request.QueryString.GetValues("audio")[0].Equals("get_files"))
                         {
-                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(files), 200);
+                            HttpServer.SendRespone(args.response, JsonSerializer.Serialize(_mediaFilesCollection.audioFiles), 200);
                         }
                         else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("device") != null && args.request.QueryString.GetValues("device").Length > 0  && args.request.QueryString.GetValues("device")[0].Equals("status"))
                         {
@@ -284,7 +285,21 @@ namespace Organista
                         
                         break;
                     case "PUT":
-                        HttpServer.SendRespone(args.response, "PUT", 200);
+                        if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("show_text") != null)
+                        {
+                            setImageText(body);
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("hide_text") != null)
+                        {
+                            setImageBlank();
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else
+                        {
+                            HttpServer.SendRespone(args.response, "unrecognized query string", 404);
+                        }
+
                         break;
                 }
             }
@@ -326,23 +341,18 @@ namespace Organista
             }
         }
 
-        async void http_task()
-        {
-            
-            
-        }
+
         async void setImageText(string text)
         {
             Avalonia.Threading.Dispatcher.UIThread.Post(() => 
             { 
                 
                 ("convert -background black -fill white -size 1920x1080 -gravity center  label:'" + text + "' /home/marcin/test.png").Bash();
-                var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
                 image_view.Source = new Bitmap(@"/home/marcin/test.png");
                 
                 image_view.IsVisible = true;
-                VideoView.IsVisible = false;
-                MediaPlayer.Fullscreen = true; 
+                //VideoView.IsVisible = false;
+                //MediaPlayer.Fullscreen = true; 
             });
         }
 
@@ -396,49 +406,61 @@ namespace Organista
                 var tfile = TagLib.File.Create(@path);
                 Console.Out.WriteLine(tfile.Tag.Title);
                 Console.Out.WriteLine(tfile.Tag.Album);
-                Console.Out.WriteLine(tfile.Tag.Comment);
-
-                TagValue file_info = null;
+                Console.Out.WriteLine(Encoding.UTF8.GetString(Encoding.Default.GetBytes(tfile.Tag.Comment)));
+                string new_string = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(tfile.Tag.Comment));
+                new_string = new_string.Replace("\\u0105", "ą").Replace("\\u0107", "ć").Replace("\\u0119", "ę")
+                    .Replace("\\u0142", "ł").Replace("\\u0144", "ń").Replace("\\u00f3", "ó")
+                    .Replace("\\u015b", "ś").Replace("u017a", "ź").Replace("u017c", "ż")
+                    .Replace("\\u0104", "Ą")
+                    .Replace("\\u0106", "Ć").Replace("\\u0118", "Ę").Replace("\\u0141", "Ł")
+                    .Replace("\\u0143", "Ń").Replace("\\u00d3", "Ó").Replace("\\u015a", "Ś")
+                    .Replace("\\u0179", "Ż").Replace("\\u017b", "Ż");
+                setImageText(new_string);
+                TagValue file_info = new TagValue();
                 try
                 {
-                    file_info = JsonSerializer.Deserialize<TagValue>(tfile.Tag.Comment);
+                    file_info = JsonSerializer.Deserialize<TagValue>(new_string);
+                    file_info.STOPS.Sort();
+                    file_info.TEXT.Sort();
                 }
-                catch
+                catch (Exception e)
                 {
                     file_info = new TagValue();
                 }
-/*
-                file_info.title = tfile.Tag.Title;
-                 file_info.album = tfile.Tag.Album;
-                 file_info.path = path;
-                 file_info.length = tfile.Length;
-                 files.Add(file_info);
-                 */
+
+
+                 AudioFile audioFile = new AudioFile();
+                 
+                 audioFile.title = tfile.Tag.Title;
+                 audioFile.album = tfile.Tag.Album;
+                 audioFile.path = path;
+                 audioFile.length = tfile.Length;
+                 audioFile.tagValue = file_info;
+                 collection.audioFiles.Add(audioFile);
+                 
             }
             else if (path.ToUpper().Contains(".MP4") || path.ToUpper().Contains(".WMV") || path.ToUpper().Contains(".AVI") || path.ToUpper().Contains(".MKV") || path.ToUpper().Contains(".MOV"))
             {
-/*                TagValue file_info = new TagValue();
 
-                file_info.title = path.Split("/").Last();
-                file_info.path = path;
-                file_info.album = "WIDEO";
+                VideoFile videoFile = new VideoFile();
+                videoFile.path = path;
+                videoFile.title = path.Split("/").Last();
+                TagValue file_info = new TagValue();
+
                 var tfile = TagLib.File.Create(@path);
+                videoFile.length = tfile.Length;
                 
-                file_info.length = tfile.Length;
-                video_files.Add(file_info);
-                */
+                collection.videoFiles.Add(videoFile);
             }
             else if (path.ToUpper().Contains(".JPG") || path.ToUpper().Contains(".JPEG") || path.ToUpper().Contains(".PNG"))
             {
+
+                ImageFile imageFile = new ImageFile();
+                imageFile.path = path;
+                imageFile.title = path.Split("/").Last();
                 
-                /*
-                TagValue file_info = new TagValue();
-                file_info.title = path.Split("/").Last();
-                file_info.path = path;
-                file_info.album = "IMAGE";
                 
-                image_files.Add(file_info);
-                */
+                collection.imageFiles.Add(imageFile);
             }
         }
         
@@ -502,6 +524,14 @@ namespace Organista
             _status.audioPlaying = true;
             _status.videoPlaying = false;
             _status.imagePlaying = false;
+
+            foreach (var x in _mediaFilesCollection.audioFiles)
+            {
+                if (x.path.Equals(file_path))
+                {
+                    nowShowinText = x.tagValue.TEXT.ToList();
+                }
+            }
         }
 
         public async void Stop()
