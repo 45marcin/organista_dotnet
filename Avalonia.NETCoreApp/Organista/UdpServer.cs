@@ -21,18 +21,25 @@ namespace Organista
             UdpClient newsock = new UdpClient(ipep);
             while (true)
             {
-                Console.WriteLine("Waiting for a client...");
-
-                IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
-
-                data = newsock.Receive(ref sender);
-                Console.WriteLine("Message received from {0}:", sender.ToString());
-                string message = Encoding.ASCII.GetString(data, 0, data.Length);
-                Console.WriteLine(Encoding.ASCII.GetString(data, 0, data.Length));
-                if (message.Equals("Where are you my play box?"))
+                try
                 {
-                    data = Encoding.ASCII.GetBytes("I'm here my love");
-                    newsock.Send(data, data.Length, sender);
+                    Console.WriteLine("Waiting for a client...");
+
+                    IPEndPoint sender = new IPEndPoint(IPAddress.Any, 0);
+
+                    data = newsock.Receive(ref sender);
+                    Console.WriteLine("Message received from {0}:", sender.ToString());
+                    string message = Encoding.ASCII.GetString(data, 0, data.Length);
+                    Console.WriteLine(Encoding.ASCII.GetString(data, 0, data.Length));
+                    if (message.Equals("Where are you my play box?"))
+                    {
+                        data = Encoding.ASCII.GetBytes("I'm here my love");
+                        newsock.Send(data, data.Length, sender);
+                    }
+                }
+                catch
+                {
+                    
                 }
             }
 

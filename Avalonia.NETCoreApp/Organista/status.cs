@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Organista
 {
     public class status
@@ -10,6 +12,6 @@ namespace Organista
         public bool stopTime { get; set; } = false;
         public int AudioBalance  { get; set; } = 0;
         public int AudioVolume  { get; set; } = 0;
-        public string[] usb { get; set; } = new string[0];
+        public List<string> usb { get; set; } = new List<string>();
     }
 }
