@@ -95,10 +95,10 @@ namespace Organista
             
             MediaFilesCollection mediaFilesCollection = new MediaFilesCollection();
             usbStorageCollections.Add(mediaFilesCollection);
-            _status.usb.Add(((DirecoryEventArgs) e).path);
             mediaFilesCollection.path = ((DirecoryEventArgs) e).path;
             mediaFilesCollection.name = ((DirecoryEventArgs) e).path.Split("/").Last();
             ProcessDirectory(((DirecoryEventArgs) e).path, mediaFilesCollection);
+            _status.usb.Add(((DirecoryEventArgs) e).path);
         }
 
         private void DeviceWatcherOnDirectorydisappeared(object? sender, EventArgs e)
@@ -499,7 +499,7 @@ namespace Organista
                         .Replace("\\u0106", "Ć").Replace("\\u0118", "Ę").Replace("\\u0141", "Ł")
                         .Replace("\\u0143", "Ń").Replace("\\u00d3", "Ó").Replace("\\u015a", "Ś")
                         .Replace("\\u0179", "Ż").Replace("\\u017b", "Ż");
-                    setImageText(new_string);
+                    //setImageText(new_string);
                     file_info = JsonSerializer.Deserialize<TagValue>(new_string);
                     file_info.STOPS.Sort();
                     file_info.TEXT.Sort();
