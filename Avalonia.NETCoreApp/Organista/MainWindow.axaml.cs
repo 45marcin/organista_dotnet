@@ -583,11 +583,13 @@ namespace Organista
 
             }
             */
+            
             if (MediaPlayer.IsPlaying)
             {
                 MediaPlayer.Stop();
                 nowShowinText = null;
             }
+            setImageBlank();
             
             foreach (var x in _mediaFilesCollection.audioFiles)
             {
@@ -641,6 +643,7 @@ namespace Organista
         public void PlayVideo(string path)
         {
             
+                setImageBlank();
             if (MediaPlayer.IsPlaying)
             {
                 MediaPlayer.Stop();
@@ -702,6 +705,7 @@ namespace Organista
                 ("amixer -c 1 sset PCM 100%," + (100+balance).ToString() + "%").Bash();
             }
             
+            _status.AudioBalance = balance;
             saveBalance(balance);
         }
         
@@ -717,6 +721,7 @@ namespace Organista
             }
             ("amixer -c 1 sset Master " + volume.ToString() + "%").Bash();
             saveVolume(volume);
+            _status.AudioVolume = volume;
         }
         
         
