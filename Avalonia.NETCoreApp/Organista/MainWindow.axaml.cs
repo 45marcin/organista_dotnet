@@ -257,9 +257,22 @@ namespace Organista
                             }
                             HttpServer.SendRespone(args.response, "", 200);
                         }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("image") != null && args.request.QueryString.GetValues("image").Length > 0   && args.request.QueryString.GetValues("image")[0].Equals("show"))
+                        {
+                            if (args.request.QueryString.GetValues("file") != null)
+                            {
+                                showImage(args.request.QueryString.GetValues("file")[0]);
+                            }
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
                         else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("video") != null && args.request.QueryString.GetValues("video").Length > 0   && args.request.QueryString.GetValues("video")[0].Equals("stop"))
                         {
                             Stop();
+                            HttpServer.SendRespone(args.response, "", 200);
+                        }
+                        else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("video") != null && args.request.QueryString.GetValues("video").Length > 0   && args.request.QueryString.GetValues("video")[0].Equals("play_pause"))
+                        {
+                            PlayPuauseVideo();
                             HttpServer.SendRespone(args.response, "", 200);
                         }
                         else if (args.request.QueryString.HasKeys() && args.request.QueryString.GetValues("audio") != null && args.request.QueryString.GetValues("audio").Length > 0   && args.request.QueryString.GetValues("audio")[0].Equals("stop"))
@@ -402,6 +415,19 @@ namespace Organista
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 image_view.Source = null;
+                
+                image_view.IsVisible = true;
+                VideoView.IsVisible = false;
+                MediaPlayer.Fullscreen = true; 
+            });
+        }
+        async void showImage(string path)
+        {
+            _status.imagePlaying = true;
+            _status.nowPlaying = path;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                image_view.Source = new Bitmap(@path);
                 
                 image_view.IsVisible = true;
                 VideoView.IsVisible = false;
@@ -602,7 +628,7 @@ namespace Organista
             
             if (MediaPlayer.IsPlaying)
             {
-               MediaPlayer.Stop();
+                MediaPlayer.Stop();
             }
             
             var media = new LibVLCSharp.Shared.Media(_libVlc, new Uri(path));
@@ -621,6 +647,20 @@ namespace Organista
             _status.audioPlaying = false;
             _status.videoPlaying = true;
             _status.imagePlaying = false;
+        }
+        public void PlayPuauseVideo()
+        {
+            if (_status.videoPlaying)
+            {
+                if (MediaPlayer.IsPlaying)
+                {
+                    MediaPlayer.Pause();
+                }
+                else
+                {
+                    MediaPlayer.Play();
+                }
+            }
         }
 
         public void SetBalance(int balance)
