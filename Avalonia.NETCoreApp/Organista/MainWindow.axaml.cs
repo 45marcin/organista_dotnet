@@ -31,7 +31,7 @@ namespace Organista
 
         public int stop_point = -1;
         public  List<text_item> nowShowinText;
-        public List<int> stopPoints;
+        public List<double> stopPoints;
 
         public List<MediaFilesCollection> usbStorageCollections;
         private MediaFilesCollection _mediaFilesCollection;
@@ -284,12 +284,12 @@ namespace Organista
                         {
                             if (stopPoints != null)
                             {
-                                int current = Convert.ToInt32(MediaPlayer.Position*MediaPlayer.Media.Duration);
+                                double current = Convert.ToDouble(MediaPlayer.Position*MediaPlayer.Media.Duration/1000);
                                 foreach(var time in stopPoints)
                                 {
                                     if (time > current)
                                     {
-                                        stop_point = time;
+                                        stop_point = Convert.ToInt32(time*1000);
                                         HttpServer.SendRespone(args.response, "set time stop point successfull", 200);
                                         _status.stopTime = true;
                                         return;
@@ -425,13 +425,26 @@ namespace Organista
         {
             _status.imagePlaying = true;
             _status.nowPlaying = path;
+            Bitmap mBitmap = null;
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                image_view.Source = new Bitmap(@path);
-                
-                image_view.IsVisible = true;
-                VideoView.IsVisible = false;
-                MediaPlayer.Fullscreen = true; 
+                using(Stream BitmapStream = System.IO.File.Open(path,System.IO.FileMode.Open ))
+                {
+
+
+                    mBitmap = Bitmap.DecodeToWidth(BitmapStream, 2000);
+
+                    //...do whatever
+                }
+
+                if (mBitmap != null)
+                {
+                    image_view.Source = mBitmap;
+                    image_view.IsVisible = true;
+                    VideoView.IsVisible = false;
+                    MediaPlayer.Fullscreen = true; 
+                }
+
             });
         }
         
@@ -481,7 +494,7 @@ namespace Organista
                     string new_string = Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(tfile.Tag.Comment));
                     new_string = new_string.Replace("\\u0105", "ą").Replace("\\u0107", "ć").Replace("\\u0119", "ę")
                         .Replace("\\u0142", "ł").Replace("\\u0144", "ń").Replace("\\u00f3", "ó")
-                        .Replace("\\u015b", "ś").Replace("u017a", "ź").Replace("u017c", "ż")
+                        .Replace("\\u015b", "ś").Replace("\\u017a", "ź").Replace("\\u017c", "ż")
                         .Replace("\\u0104", "Ą")
                         .Replace("\\u0106", "Ć").Replace("\\u0118", "Ę").Replace("\\u0141", "Ł")
                         .Replace("\\u0143", "Ń").Replace("\\u00d3", "Ó").Replace("\\u015a", "Ś")
@@ -576,6 +589,15 @@ namespace Organista
                 nowShowinText = null;
             }
             
+            foreach (var x in _mediaFilesCollection.audioFiles)
+            {
+                if (x.path.Equals(file_path))
+                {
+                    nowShowinText = x.tagValue.TEXT.ToList();
+                    stopPoints = x.tagValue.STOPS;
+                }
+            }
+            
             using var media = new LibVLCSharp.Shared.Media(_libVlc, new Uri(file_path));
             MediaPlayer.Play(media);
             
@@ -591,13 +613,6 @@ namespace Organista
             _status.videoPlaying = false;
             _status.imagePlaying = false;
 
-            foreach (var x in _mediaFilesCollection.audioFiles)
-            {
-                if (x.path.Equals(file_path))
-                {
-                    nowShowinText = x.tagValue.TEXT.ToList();
-                }
-            }
         }
 
         public async void Stop()
